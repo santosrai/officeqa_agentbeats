@@ -1,0 +1,82 @@
+name: Publish Docker Images to GHCR
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'Dockerfile.officeqa-judge'
+      - 'Dockerfile.officeqa-agent'
+      - 'judge/**'
+      - 'participant/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push-judge:
+    name: Build and push officeqa-judge
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for judge image
+        id: meta-judge
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/officeqa-judge
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix=sha-
+
+      - name: Build and push officeqa-judge image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.officeqa-judge
+          push: true
+          tags: ${{ steps.meta-judge.outputs.tags }}
+          labels: ${{ steps.meta-judge.outputs.labels }}
+
+  build-and-push-agent:
+    name: Build and push officeqa-agent
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for agent image
+        id: meta-agent
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/officeqa-agent
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix=sha-
+
+      - name: Build and push officeqa-agent image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.officeqa-agent
+          push: true
+          tags: ${{ steps.meta-agent.outputs.tags }}
+          labels: ${{ steps.meta-agent.outputs.labels }}
